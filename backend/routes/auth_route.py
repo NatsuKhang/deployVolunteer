@@ -11,7 +11,6 @@ from jwt import PyJWTError
 
 router = APIRouter()
 
-# test deploy
 @router.post(
     "/register",
     summary="Register a new account",
