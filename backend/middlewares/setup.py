@@ -48,9 +48,10 @@ def setup_middlewares(app: FastAPI):
     before any middleware that accesses request.session (CSRFMiddleware depends on it).
     """
     # CORS can be added first
+    API_ORIGIN = env_settings.API_ORIGIN
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=API_ORIGIN,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "X-CSRF-Token"],
