@@ -80,18 +80,26 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
+        # Truyền biến vào SSH session
         envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,ECR_REPOSITORY_BACKEND,ECR_REPOSITORY_FRONTEND
         script: |
-          # --- THÊM DÒNG NÀY ĐỂ FIX LỖI QUYỀN DOCKER ---
+          # 1. FIX LỖI DOCKER PERMISSION (Lỗi bạn vừa gặp)
           sudo chmod 666 /var/run/docker.sock
-          # 1. Login ECR trên server
+
+          # 2. CẤP QUYỀN AWS (Phần bạn đang thiếu)
+          # Phải export ra thì lệnh 'aws' bên dưới mới hiểu
+          export AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          export AWS_DEFAULT_REGION=${{ secrets.AWS_REGION }}
+          
+          # 3. Login ECR
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
           
-          # 2. Pull ảnh mới về
+          # 4. Pull ảnh mới về
           docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_BACKEND }}:latest
           docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY_FRONTEND }}:latest
           
-          # 3. Tạo file docker-compose.prod.yaml trên server (Mẹo: dùng echo để tạo file tại chỗ)
+          # 5. Tạo file docker-compose.prod.yaml trên server
           cat <<EOF > docker-compose.prod.yaml
           services:
             backend:
@@ -113,18 +121,8 @@ jobs:
             db_data:
           EOF
 
-          # 4. Tạo file .env nếu chưa có (Điền thông tin thật của bạn vào đây)
-          # Lưu ý: Lần đầu tiên bạn nên SSH vào server để tạo file .env thủ công cho an toàn
-          # Nếu muốn tự động thì bỏ comment dòng dưới và thay giá trị
-          # echo "DATABASE_USER=postgres" > .env
-          # echo "DATABASE_PASSWORD=password123" >> .env
-          # echo "DATABASE_HOST=db" >> .env
-          # echo "DATABASE_NAME=volunteer_db" >> .env
-          # echo "JWT_SECRET=secret" >> .env
-          # echo "API_ORIGIN=http://${{ secrets.EC2_HOST }}:5173" >> .env
-
-          # 5. Chạy Docker Compose
+          # 6. Chạy Docker Compose
           docker compose -f docker-compose.prod.yaml up -d
           
-          # 6. Dọn dẹp ảnh cũ cho đỡ tốn dung lượng ổ cứng
+          # 7. Dọn dẹp ảnh cũ
           docker image prune -f
