@@ -82,6 +82,8 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,ECR_REPOSITORY_BACKEND,ECR_REPOSITORY_FRONTEND
         script: |
+          # --- THÊM DÒNG NÀY ĐỂ FIX LỖI QUYỀN DOCKER ---
+          sudo chmod 666 /var/run/docker.sock
           # 1. Login ECR trên server
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
           
